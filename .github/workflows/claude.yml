@@ -40,7 +40,7 @@ jobs:
           claude -p "$COMMENT_BODY" \
             --allowedTools "Bash(make:*)" "Bash(cd:*)" "Bash(git:*)" "Bash(npm:*)" "Bash(go:*)" \
             --dangerously-skip-permissions \
-            --model claude-sonnet-4-6 \
+            --model claude-3-5-sonnet-20241022 \
             --verbose 2>&1 | tee /tmp/claude-output.txt || true
 
       - name: Post response as PR comment
