@@ -26,9 +26,16 @@ jobs:
           # Crucial: Checkout the code from the PR that triggered the comment, not just main
           ref: ${{ github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
 
+      - name: Install Bun 1.1.43 Workaround
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.1.43
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1.0.68
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           model: claude-3-5-sonnet-20241022
+          allowed_tools: "Bash(cd:*),Bash(git:*),Bash(make:*),Bash(npm:*),Bash(go:*)"
+          path_to_bun_executable: /home/runner/.bun/bin/bun
