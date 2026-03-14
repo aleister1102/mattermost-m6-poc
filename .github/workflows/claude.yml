@@ -30,27 +30,21 @@ jobs:
           fetch-depth: 1
           ref: ${{ github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
 
-      # NOTE: The original Mattermost workflow uses anthropics/claude-code-action@v1.0.70
-      # which has a known SDK bug (depsCount AJV validation error).
-      # We call the Claude Code CLI directly as a workaround.
-      # This is functionally equivalent -- the action internally invokes the same CLI.
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
+      # Workaround: pre-install a known-good Claude Code CLI version to avoid
+      # the depsCount AJV bug in @anthropic-ai/claude-agent-sdk (v0.2.27+).
+      # See: https://github.com/anthropics/claude-code-action/issues/852
       - name: Install Claude Code CLI
-        run: npm install -g @anthropic-ai/claude-code
+        run: |
+          sudo rm -f /usr/local/bin/claude
+          npm install -g @anthropic-ai/claude-code@2.1.18
+          echo "CLAUDE_PATH=$(which claude)" >> $GITHUB_ENV
 
       - name: Run Claude Code
         id: claude
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          COMMENT_BODY=$(jq -r '.comment.body // .issue.body // .review.body // empty' "$GITHUB_EVENT_PATH")
-          echo "Running Claude with user comment..."
-          claude -p "$COMMENT_BODY" \
-            --allowedTools "Bash(cd:*)" "Bash(git:*)" "Bash(make:*)" "Bash(npm:*)" "Bash(go:*)" \
-            --dangerously-skip-permissions \
-            --model claude-haiku-4-5 \
-            --verbose 2>&1 | tee /tmp/claude-output.txt || true
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: claude-haiku-4-5
+          allowed_tools: "Bash(cd:*),Bash(git:*),Bash(make:*),Bash(npm:*),Bash(go:*)"
+          path_to_claude_code_executable: ${{ env.CLAUDE_PATH }}
+          show_full_output: true
