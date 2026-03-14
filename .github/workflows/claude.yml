@@ -26,18 +26,9 @@ jobs:
           # Crucial: Checkout the code from the PR that triggered the comment, not just main
           ref: ${{ github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install stable Claude Code version
-        run: npm install -g @anthropic-ai/claude-code@0.2.29
-
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1.0.70
+        uses: anthropics/claude-code-action@v1.0.60
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           model: claude-3-5-sonnet-20241022
           allowed_tools: "Bash(cd:*),Bash(git:*),Bash(make:*),Bash(npm:*),Bash(go:*)"
-          path_to_claude_code_executable: "claude"
