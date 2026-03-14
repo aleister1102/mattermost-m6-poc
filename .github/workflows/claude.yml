@@ -14,27 +14,51 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
-      id-token: write
+      pull-requests: write
+      issues: write
     steps:
-      - name: Checkout repository
+      - name: Checkout PR code
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           ref: ${{ github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
 
-      # Install a known-good older version of Claude Code CLI
-      # v2.1.56 has a depsCount AJV bug, so we install an older one
-      - name: Install older Claude Code CLI
-        run: |
-          npm install -g @anthropic-ai/claude-code@2.0.1
-          which claude
-          claude --version
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          COMMENT_BODY=$(jq -r '.comment.body' "$GITHUB_EVENT_PATH")
+          echo "Comment: $COMMENT_BODY"
+          claude -p "$COMMENT_BODY" \
+            --allowedTools "Bash(make:*)" "Bash(cd:*)" "Bash(git:*)" "Bash(npm:*)" "Bash(go:*)" \
+            --dangerously-skip-permissions \
+            --model claude-sonnet-4-6 \
+            --verbose 2>&1 | tee /tmp/claude-output.txt || true
+
+      - name: Post response as PR comment
+        if: always()
+        uses: actions/github-script@v7
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          allowed_tools: "Bash(cd:*),Bash(git:*),Bash(make:*),Bash(npm:*),Bash(go:*)"
-          path_to_claude_code_executable: /usr/local/bin/claude
+          script: |
+            const fs = require('fs');
+            let output = 'No output captured.';
+            try {
+              output = fs.readFileSync('/tmp/claude-output.txt', 'utf8');
+            } catch (e) {}
+            if (output.length > 60000) {
+              output = output.substring(0, 60000) + '\n\n... (truncated)';
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `### Claude Code Response\n\n\`\`\`\n${output}\n\`\`\``
+            });
