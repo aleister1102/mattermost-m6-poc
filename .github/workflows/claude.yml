@@ -21,13 +21,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # Important for Claude to see the code
           fetch-depth: 1
-          # Crucial: Checkout the code from the PR that triggered the comment, not just main
           ref: ${{ github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
+
+      # Install a known-good older version of Claude Code CLI
+      # v2.1.56 has a depsCount AJV bug, so we install an older one
+      - name: Install older Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.0.1
+          which claude
+          claude --version
 
       - name: Run Claude Code
         uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           allowed_tools: "Bash(cd:*),Bash(git:*),Bash(make:*),Bash(npm:*),Bash(go:*)"
+          path_to_claude_code_executable: /usr/local/bin/claude
