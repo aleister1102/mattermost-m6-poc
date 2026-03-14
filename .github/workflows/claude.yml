@@ -16,6 +16,7 @@ jobs:
       contents: read
       pull-requests: read
       issues: read
+      id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,10 +27,8 @@ jobs:
           ref: ${{ github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.ref }}
 
       - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1.0.70
+        uses: anthropics/claude-code-action@v1.0.40
         with:
-          # In a real environment, this is a secret.
-          # For the PoC, we map a dummy secret or just an echo secret.
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-dummy-secret-12345' }}
-          model: claude-3-7-sonnet-20250219
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: claude-3-5-sonnet-20241022
           allowed_tools: "Bash(cd:*),Bash(git:*),Bash(make:*),Bash(npm:*),Bash(go:*)"
